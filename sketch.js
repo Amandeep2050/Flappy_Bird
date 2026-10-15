@@ -42,6 +42,11 @@ function setup() {
         birdColor: r.BLUE,
     }
 
+    const gameStates = {
+        game: false,
+        score: 0,
+    }
+
     const obstacles = [
         getObstacle(400, screen.HEIGHT / 2, screen.HEIGHT),
         getObstacle(700, screen.HEIGHT / 3, screen.HEIGHT),
@@ -58,6 +63,7 @@ function setup() {
         bird,
         obstacles,
         pallete,
+        gameStates,
     }
 }
 
@@ -66,10 +72,17 @@ function updatePosition(obstacle) {
     obstacle.lower.x += obstacle.velocity;
 }
 
-function isOutOfBound(obstacle, screenWidth) {
+function resetObstacle(obstacle, screen) {
+    const height = Math.floor(Math.random() * (screen.HEIGHT - 300));
+    const newObstacle = getObstacle(screen.WIDTH + 200, height, screen.HEIGHT);
+    obstacle.upper = newObstacle.upper;
+    obstacle.lower = newObstacle.lower;
+}
+
+function isOutOfBound(obstacle, screen, gameStates) {
     if (obstacle.upper.x + obstacle.upper.width <= 0) {
-        obstacle.upper.x = screenWidth + 200;
-        obstacle.lower.x = screenWidth + 200;
+        resetObstacle(obstacle, screen);
+        gameStates.score += 1;
     }
 }
 
@@ -82,36 +95,36 @@ function checkCollision(rec1, rec2) {
     return false;
 }
 
-function moveObstacles(obstacles, screenWidth) {
+function moveObstacles(obstacles, screen, gameStates) {
+    for (let i = 0; i < obstacles.length; i++) {
+        updatePosition(obstacles[i], screen.WIDTH);
+        isOutOfBound(obstacles[i], screen, gameStates);
+    }
+}
 
+function doesCollide(obstacles, bird) {
+    for (let i = 0; i < obstacles.length; i++) {
+        if (checkCollision(bird, obstacles[i].upper)) teardown();
+        if (checkCollision(bird, obstacles[i].lower)) teardown();
+    }
 }
 
 function update(world) {
     const bird = world.bird
     const obstacles = world.obstacles;
 
-    // flapping of bird completed.
-    bf.updateVelocity(bird);
-    bf.updatePosition(bird);
-    bf.isOutOfBound(world);
-    bf.isFlap(world);
+    if (r.IsKeyPressed(r.KEY_SPACE)) world.gameStates.game = true;
 
-    // obstacle movement
-    moveObstacles(obstacles, world.screen.WIDTH);
+    if (world.gameStates.game) {
+        // flapping of bird completed.
+        bf.updateVelocity(bird);
+        bf.updatePosition(bird);
+        bf.isOutOfBound(world);
+        bf.isFlap(world);
 
-    updatePosition(obstacles[0], world.screen.WIDTH);
-    isOutOfBound(obstacles[0], world.screen.WIDTH);
-
-    updatePosition(obstacles[1], world.screen.WIDTH);
-    isOutOfBound(obstacles[1], world.screen.WIDTH);
-
-    updatePosition(obstacles[2], world.screen.WIDTH);
-    isOutOfBound(obstacles[2], world.screen.WIDTH);
-
-    // Collision
-    for (let i = 0; i < obstacles.length; i++) {
-        if (checkCollision(bird.dimestions, obstacles[i].upper)) teardown();
-        if (checkCollision(bird.dimestions, obstacles[i].lower)) teardown();
+        // obstacle movement
+        moveObstacles(obstacles, world.screen, world.gameStates);
+        doesCollide(obstacles, bird.dimestions);
     }
 
 }
@@ -136,6 +149,8 @@ function draw(world) {
     drawObstacle(obstacles[0]);
     drawObstacle(obstacles[1]);
     drawObstacle(obstacles[2]);
+
+    r.DrawText(world.gameStates.score + "", 10, 10, 15, r.BLUE);
 
     r.EndDrawing();
 }
