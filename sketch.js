@@ -40,6 +40,7 @@ function setup() {
     const pallete = {
         bg: r.WHITE,
         birdColor: r.BLUE,
+
     }
 
     const gameStates = {
